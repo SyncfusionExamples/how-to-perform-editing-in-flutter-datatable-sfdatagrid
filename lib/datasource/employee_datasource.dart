@@ -1,74 +1,47 @@
-# How to perform editing in Flutter Datatable(SfDataGrid)
-
-In this example, you will learn how to enable the editing in SfDataGrid and perform committing the edited cell value in collection
-
-```xml
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: SfDataGrid(
-      source: _employeeDataSource,
-      allowEditing: true,
-      selectionMode: SelectionMode.single,
-      navigationMode: GridNavigationMode.cell,
-      columns: [
-        GridColumn(
-          columnName: 'id',
-          label: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerRight,
-            child: Text(
-              'ID',
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-        GridColumn(
-          columnName: 'name',
-          label: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Name',
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-        GridColumn(
-          columnName: 'designation',
-          label: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Designation',
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-        GridColumn(
-          columnName: 'salary',
-          label: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerRight,
-            child: Text(
-              'Salary',
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+import 'package:collection/collection.dart';
+import 'package:datagrid_editing/model/employee.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 class EmployeeDataSource extends DataGridSource {
+  EmployeeDataSource(this._employees) {
+    dataGridRows = _employees
+        .map<DataGridRow>((dataGridRow) => dataGridRow.getDataGridRow())
+        .toList();
+  }
+
+  List<Employee> _employees = [];
+
+  List<DataGridRow> dataGridRows = [];
+
   /// Helps to hold the new value of all editable widget.
   /// Based on the new value we will commit the new value into the corresponding
-  /// DataGridCell on onCellSubmit method.
+  /// [DataGridCell] on [onSubmitCell] method.
   dynamic newCellValue;
 
   /// Help to control the editable text in [TextField] widget.
   TextEditingController editingController = TextEditingController();
+
+  @override
+  List<DataGridRow> get rows => dataGridRows;
+
+  @override
+  DataGridRowAdapter? buildRow(DataGridRow row) {
+    return DataGridRowAdapter(
+        cells: row.getCells().map<Widget>((dataGridCell) {
+      return Container(
+          alignment: (dataGridCell.columnName == 'id' ||
+                  dataGridCell.columnName == 'salary')
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
+          padding: EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            dataGridCell.value.toString(),
+            overflow: TextOverflow.ellipsis,
+          ));
+    }).toList());
+  }
 
   @override
   void onCellSubmit(DataGridRow dataGridRow, RowColumnIndex rowColumnIndex,
@@ -106,6 +79,13 @@ class EmployeeDataSource extends DataGridSource {
   }
 
   @override
+  bool canSubmitCell(DataGridRow dataGridRow, RowColumnIndex rowColumnIndex,
+      GridColumn column) {
+    // Return false, to retain in edit mode.
+    return true; // or super.canSubmitCell(dataGridRow, rowColumnIndex, column);
+  }
+
+  @override
   Widget? buildEditWidget(DataGridRow dataGridRow,
       RowColumnIndex rowColumnIndex, GridColumn column, CellSubmit submitCell) {
     // Text going to display on editable widget
@@ -120,13 +100,16 @@ class EmployeeDataSource extends DataGridSource {
     // The new cell value must be reset.
     // To avoid committing the [DataGridCell] value that was previously edited
     // into the current non-modified [DataGridCell].
-    newCellValue = null;    
+    newCellValue = null;
 
     final bool isTextAlignRight =
         column.columnName == 'id' || column.columnName == 'salary';
 
     final bool isNumericKeyBoardType =
         column.columnName == 'id' || column.columnName == 'salary';
+
+    // Holds regular expression pattern based on the column type.
+    final RegExp regExp = _getRegExp(isNumericKeyBoardType, column.columnName);
 
     return Container(
       padding: const EdgeInsets.all(8.0),
@@ -136,10 +119,14 @@ class EmployeeDataSource extends DataGridSource {
         autofocus: true,
         controller: editingController..text = displayText,
         textAlign: isTextAlignRight ? TextAlign.right : TextAlign.left,
+        autocorrect: false,
         decoration: InputDecoration(
             contentPadding: const EdgeInsets.fromLTRB(0, 0, 0, 16.0),
             focusedBorder: UnderlineInputBorder(
                 borderSide: BorderSide(color: Colors.black))),
+        inputFormatters: <TextInputFormatter>[
+          FilteringTextInputFormatter.allow(regExp)
+        ],
         keyboardType:
             isNumericKeyBoardType ? TextInputType.number : TextInputType.text,
         onChanged: (String value) {
@@ -154,23 +141,15 @@ class EmployeeDataSource extends DataGridSource {
           }
         },
         onSubmitted: (String value) {
-          // In Mobile Platform.
-          // Call [CellSubmit] callback to fire the canSubmitCell and
-          // onCellSubmit to commit the new value in single place.
+          /// Call [CellSubmit] callback to fire the canSubmitCell and
+          /// onCellSubmit to commit the new value in single place.
           submitCell();
         },
       ),
     );
   }
+
+  RegExp _getRegExp(bool isNumericKeyBoard, String columnName) {
+    return isNumericKeyBoard ? RegExp('[0-9]') : RegExp('[a-zA-Z ]');
+  }
 }
-```
-
-![Flutter DataTable(SfDataGrid) Editing ](assets/flutter-datatable-editing.gif)
-
-## Other useful links
-
- Check out the following resource to learn more about the Syncfusion Flutter DataGrid:
-
-* [Syncfusion Flutter DataGrid Editing UG page](https://help.syncfusion.com/flutter/datagrid/editing)
-* [Syncfusion Flutter DataGrid product page](https://www.syncfusion.com/flutter-widgets/flutter-datagrid)
-* [User guide documentation](https://help.syncfusion.com/flutter/datagrid/overview)
