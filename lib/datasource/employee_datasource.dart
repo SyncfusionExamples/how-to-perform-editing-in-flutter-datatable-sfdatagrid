@@ -102,36 +102,30 @@ class EmployeeDataSource extends DataGridSource {
     // into the current non-modified [DataGridCell].
     newCellValue = null;
 
-    final bool isTextAlignRight =
-        column.columnName == 'id' || column.columnName == 'salary';
-
-    final bool isNumericKeyBoardType =
+    final bool isNumericType =
         column.columnName == 'id' || column.columnName == 'salary';
 
     // Holds regular expression pattern based on the column type.
-    final RegExp regExp = _getRegExp(isNumericKeyBoardType, column.columnName);
+    final RegExp regExp = _getRegExp(isNumericType, column.columnName);
 
     return Container(
       padding: const EdgeInsets.all(8.0),
-      alignment:
-          isTextAlignRight ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isNumericType ? Alignment.centerRight : Alignment.centerLeft,
       child: TextField(
         autofocus: true,
         controller: editingController..text = displayText,
-        textAlign: isTextAlignRight ? TextAlign.right : TextAlign.left,
+        textAlign: isNumericType ? TextAlign.right : TextAlign.left,
         autocorrect: false,
         decoration: InputDecoration(
-            contentPadding: const EdgeInsets.fromLTRB(0, 0, 0, 16.0),
-            focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.black))),
+          contentPadding: const EdgeInsets.fromLTRB(0, 0, 0, 16.0),
+        ),
         inputFormatters: <TextInputFormatter>[
           FilteringTextInputFormatter.allow(regExp)
         ],
-        keyboardType:
-            isNumericKeyBoardType ? TextInputType.number : TextInputType.text,
+        keyboardType: isNumericType ? TextInputType.number : TextInputType.text,
         onChanged: (String value) {
           if (value.isNotEmpty) {
-            if (isNumericKeyBoardType) {
+            if (isNumericType) {
               newCellValue = int.parse(value);
             } else {
               newCellValue = value;
